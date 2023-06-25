@@ -1,4 +1,5 @@
-temp:
+# ONGOING
+# TEMP: 
 windows using wsl2:
 1.powershell:
 - Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0 
