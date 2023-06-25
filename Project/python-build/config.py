@@ -13,4 +13,6 @@ class TestConfig(Config):
     TEST_KEY = "key"
     TEST_TOPIC = "my_topic"
 
+
+
 config = TestConfig()

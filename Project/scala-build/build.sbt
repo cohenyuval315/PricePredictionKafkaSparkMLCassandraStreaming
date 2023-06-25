@@ -1,5 +1,5 @@
 ThisBuild / version      := "0.1.0"
-ThisBuild / scalaVersion := "2.12.7"
+ThisBuild / scalaVersion := "2.12.17"
 ThisBuild / organization := "com.example"
 
 
@@ -31,7 +31,13 @@ val sparkLanucher = apacheSpark %  f"spark-launcher$scalaVersionSuffix"  % spark
 val sparkHadoop = apacheSpark %  f"spark-hadoop-cloud$scalaVersionSuffix" % sparkVersion
 val sparkAvro = apacheSpark %  f"spark-avro$scalaVersionSuffix"  % sparkVersion
 val sparkHive = apacheSpark %  f"spark-hive$scalaVersionSuffix"  % sparkVersion
-val sparkMllib = apacheSpark %  f"spark-mllib$scalaVersionSuffix" % sparkVersion
+
+
+val sparkMllib = apacheSpark %  f"spark-mllib$scalaVersionSuffix" % sparkVersion exclude("org.scala-lang.modules", "scala-parser-combinators_2.12")
+
+
+
+
 val sparkCore = apacheSpark %  f"spark-core$scalaVersionSuffix" % sparkVersion
 val sparkCatalyst = apacheSpark %  f"spark-catalyst$scalaVersionSuffix"  % sparkVersion
 
@@ -56,7 +62,10 @@ val kafkaShell = apacheKafka % "kafka-shell" % kafkaVersion
 
 
 val cassandra = apacheCassandra % "apache-cassandra" % cassandraVersion
+val sparkCassandraConnector = "com.datastax.spark" % f"spark-cassandra-connector$scalaVersionSuffix" % "3.3.0"
+val sparkCassandraConnectorAssambly = "com.datastax.spark" % f"spark-cassandra-connector-assembly$scalaVersionSuffix" % "3.3.0"
 
+val protobuf = apacheSpark % f"spark-protobuf$scalaVersionSuffix" % sparkVersion
 val log4j = "log4j" % "log4j" % log4jVersion
 val scalaTest = "org.scalatest" %% "scalatest" % "3.2.7"
 val gigahorse = "com.eed3si9n" %% "gigahorse-okhttp" % "0.5.0"
@@ -68,13 +77,16 @@ val dataDependencies = Seq(
   //scalaParser,
   log4j,
   cassandra,
+  sparkCassandraConnector,
+  sparkCassandraConnectorAssambly,
 )
 
 
 val sparkDependencies = Seq(
   
   sparkCore,
-  // sparkMllibLocal, 
+  sparkSql,
+  sparkMllibLocal, 
   sparkStreamingKafka,
   sparkStreaming,
   sparkSqlKafka,
@@ -85,10 +97,10 @@ val sparkDependencies = Seq(
   sparkMesos,
   sparkProtobuf,
   //sparkCatalyst,
-  sparkSql,
+  
   sparkStreamingKafkaAssembly,
   // sparkHive,
-  // sparkMllib,
+  sparkMllib,
 )
 
 

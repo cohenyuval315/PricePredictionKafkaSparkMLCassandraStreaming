@@ -1,6 +1,6 @@
 
 
-KAFKA_BASE="/usr/local/kafka/"
+KAFKA_BASE="/usr/local/kafka/kafka"
 zookeeper_start_script="$KAFKA_BASE/bin/zookeeper-server-start.sh"
 zookeeper_properties="$KAFKA_BASE/config/zookeeper.properties"  
 kafka_start_script="$KAFKA_BASE/bin/kafka-server-start.sh"

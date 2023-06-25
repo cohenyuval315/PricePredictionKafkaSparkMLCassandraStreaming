@@ -6,155 +6,165 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 import org.apache.spark.streaming
-import org.apache.spark
 import org.apache.spark.sql.types
 import org.apache.kafka.server
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types._
+import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.feature.VectorAssembler
+import org.apache.spark.ml.regression.LinearRegression
+import scala.util.parsing.json._
 // import org.apache.kafka.streams
 import java.util.Properties
+import org.apache.spark.sql.{Dataset,Row,DataFrame}
 // nc -lk 9999 
+import com.datastax.spark.connector._
+import com.datastax.spark.connector.mapper.DataFrameColumnMapper
 
+import com.datastax.spark.connector.cql._
+import org.apache.spark._
+import org.apache.log4j._
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.functions._
+import spark.SparkStart
+import kafka.{KafkaSink,KafkaSource,KafkaService}
+import models.{KlineData}
+import org.apache.spark.sql.streaming.StreamingQuery
 
 
 object Main extends App {
   val TEST_TOPIC = "my_topic"
   val TEST_KEY = "key"
   val BOOSTRAP_SERVER = "localhost:9092"
-
-  //  def startKafka() = {
-  //   server.
-  //  }
-
-  //streaming.kafka010.KafkaUtils.createDirectStream()
-
-  // val sparkConf = new SparkConf().setAppName("WindowClickCount").setMaster("local[2]")
   val appName = "sparkByEx"
-  val masterTarget = "local[1]"
-  val masterTargetT = "spark://10.0.0.14:7077"
+  val masterTarget = "local[2]"
+  val masterTargetT = "spark://DESKTOP-1OCIBRO.localdomain:7077"
   val logLevel = "ERROR"
-  // val sparkConf = new SparkConf()
-  //   .setAppName(appName)
-  //   .setMaster(masterTargetT)
-  // val sc = new SparkContext()
+  val output_topic = "output-topic"
 
-  val spark = SparkSession.builder().appName(appName).master(masterTargetT).getOrCreate()
-  spark.sparkContext.setLogLevel(logLevel)
+  val spark = SparkStart.getAndConfigureSparkSession()
+  import spark.implicits._
+
+  def consoleStream(df: DataFrame) : StreamingQuery = {
+    df
+      .writeStream
+      .queryName("df-console")
+      .format("console")
+      .start()
+  }
+
   
+
+  // read from kafka 
+  val kafkaInputDS = KafkaSource.read()
+  val df = kafkaInputDS.select($"timestamp",$"klineOutput").w.select(KafkaService.klineOutput + ".")
+  .
+       .as[KlineData]
   
-  // val lines = spark.readStream.format("socket").option("host","localhost").option("port",9999).load() 
+  val df = kafkaInputDS
 
-  val kafkaDF = spark.readStream
-  .format("kafka").option("kafka.bootstrap.servers",BOOSTRAP_SERVER)
-  .option("subscribe",TEST_TOPIC).load()
+  kafkaInputDS.createOrReplaceTempView("klines")
+  // val ddf = spark.sql("select klines.openPrice,klines.closePrice,klines.highPrice,klines.lowPrice from klines")
+  val ddf = spark.sql("select klines.timestamp, klines.klineOutput from klines")
 
-  val proccessedDF = kafkaDF.selectExpr("CAST(key AS STRING)","CAST(value AS STRING)")
-  
-  
-  val schema = types.StructType(Seq(
-    types.StructField("column1",types.IntegerType),
-    types.StructField("column2",types.StringType),
-  ))
-  val query = proccessedDF.writeStream
-    .outputMode("append")
-    .format("console")
-    .start()
 
-  query.awaitTermination()
+    // kafkaInputDS
+    // .groupBy(
+    //   window($"timestamp","2 minutes","3 minutes"),
+    //   $"openPrice"
+    //   ).count()
 
-  // val words = lines.as[Integer].flatMap(_.split(" "))
-  // val wordCounts = words.groupBy("value").count()
-  // val query = wordCounts.writeStream
-  //   .outputMode("complete")
-  //   .format("console")
+  consoleStream(ddf)
+
+
+
+
+
+    // ElasticSink.writeStream(songEvent)
+
+    //Send it to Kafka for our example
+    // KafkaSink.writeStream(streamDS)
+
+    // //Finally read it from kafka, in case checkpointing is not available we read last offsets saved from Cassandra
+    // val (startingOption, partitionsAndOffsets) = CassandraDriver.getKafaMetadata()
+    // val kafkaInputDS = KafkaSource.read(startingOption, partitionsAndOffsets)
+
+    // //Just debugging Kafka source into our console
+    // KafkaSink.debugStream(kafkaInputDS)
+
+    // //Saving using Datastax connector's saveToCassandra method
+    // CassandraDriver.saveStreamSinkProvider(kafkaInputDS)
+
+    // //Saving using the foreach method
+    // //CassandraDriver.saveForeach(kafkaInputDS) //Untype/unsafe method using CQL  --> just here for example
+
+    // //Another fun example managing an arbitrary state
+    // MapGroupsWithState.write(kafkaInputDS)
+
+
+  spark.streams.awaitAnyTermination()
+
+  // val writeQuery = kafkaDF.writeStream
+  //   .format("kafka")
+  //   .option("kafka.bootstrap.servers", BOOSTRAP_SERVER)
+  //   .option("topic", output_topic)
+  //   .option("checkpointLocation", "/tmp/spark_data")
   //   .start()
 
-  // query.awaitTermination()
-  // print("hello\n")
-
+  // writeQuery.awaitTermination()
 }
 
+// val kafkaDF = spark.readStream
+  // .format("kafka")
+  // .option("kafka.bootstrap.servers",BOOSTRAP_SERVER)
+  // .option("subscribe",TEST_TOPIC)
+  // .load()
+  // kafkaDF.printSchema()
+
+    
+
+  // val parsedDF = kafkaDF.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
+  //   .select(from_json($"value", schema).as("data"))
+  //   .select("data.*")
+  //   .as[KlineData]
+
+  // val keyspace = "keyspace"
+  // val table = "kline"
+  // val mapper = new DataFrameColumnMapper(schema)
+  
+  // mapper.newTable(keyspace,table)
+  // parsedDF.
+  // parsedDF.writeStream.foreachBatch{(batchDF, _) =>
+  //     batchDF.write
+  //       .format("org.apache.spark.sql.cassandra")
+  //       .mode("append")
+  //       .option("table", table)
+  //       .option("keyspace", keyspace)
+  //       .save()
+  //   }
+  //   .start()
+  //   .awaitTermination()
 
 
-// import events.avro.ClickEvent
-// import kafka.serializer.DefaultDecoder
-// import org.apache.avro.io.DecoderFactory
-// import org.apache.avro.specific.SpecificDatumReader
-// import org.apache.spark._
-// import org.apache.spark.rdd.RDD
-// import org.apache.spark.storage.StorageLevel
-// import org.apache.spark.streaming.kafka.KafkaUtils
-// import org.apache.spark.streaming.{Minutes, Seconds, StreamingContext}
+  // val query = parsedDF.writeStream.outputMode("append").format("console").start()
 
-// object Main extends App {
-//   /**
-//    * Example Arguments: test 2
-//    */
-//   if (args.length < 2) {
-//     System.err.println("Usage: <topic> <numThreads>")
-//     System.exit(1)
-//   }
 
-//   println("Initializing App")
-
-//   val Array(topics, numThreads) = args
-
-//   val sparkConf = new SparkConf().setAppName("WindowClickCount").setMaster("local[2]")
-
-//   // Slide duration of ReduceWindowedDStream must be multiple of the parent DStream, and we chose 2 seconds for the reduced
-//   // window stream
-//   val ssc = new StreamingContext(sparkConf, Seconds(2))
-
-//   // Because we're using .reduceByKeyAndWindow, we need to persist it to disk
-//   ssc.checkpoint("./checkpointDir")
-
-//   val kafkaConf = Map(
-//     "metadata.broker.list" -> "localhost:9092", // Default kafka broker list location
-//     "zookeeper.connect" -> "localhost:2190", // Default zookeeper location
-//     "group.id" -> "kafka-spark-streaming-example",
-//     "zookeeper.connection.timeout.ms" -> "1000")
-
-//   val topicMap = topics.split(",").map((_, numThreads.toInt)).toMap
-
-//   // Create a new stream which can decode byte arrays.  For this exercise, the incoming stream only contain user and product Ids
-//   val lines = KafkaUtils.createStream[String, Array[Byte], DefaultDecoder, DefaultDecoder](ssc, kafkaConf, topicMap, StorageLevel.MEMORY_ONLY_SER).map(_._2)
-
-//   // Create a RDD containing the mapping of ids to names.  In practice, these mappings will come from HDFS/S3/(a real data source)
-//   val userNameMapRDD = ssc.sparkContext.parallelize(Array((1,"Joe"), (2, "Michelle"), (3, "David"), (4, "Anthony"), (5, "Lisa")))
-//   val productNameMapRDD = ssc.sparkContext.parallelize(Array((1,"Legos"), (2, "Books"), (3, "Board Games"), (4, "Food"), (5, "Computers")))
-
-//   // Join the stream with the userNameMapRDD to map the userName to the userId
-//   val mappedUserName = lines.transform{rdd =>
-//     val clickRDD: RDD[(Int, Int)] = rdd.map { bytes => AvroUtil.clickEventDecode(bytes) }.map { clickEvent =>
-//       (clickEvent.getUserId: Int) -> clickEvent.getProductId
-//     }
-
-//     clickRDD.join(userNameMapRDD).map { case (userId, (productId, userName)) => (userName, productId)}
-//   }
-
-//   // Join the stream with the productNameMapRDD to map the productName to the productId
-//   val mappedProductId = mappedUserName.transform{ rdd =>
-//     val productRDD = rdd.map { case (userName, productId) => (productId: Int, userName) }
-
-//     productRDD.join(productNameMapRDD).map { case (productId, (productName, userName)) => (userName, productName)}
-//   }
-
-//   // Get a count of all the users and the products they visited in the last 10 minutes, refreshing every 2 seconds
-//   val clickCounts = mappedProductId.map(x => (x, 1L))
-//     .reduceByKeyAndWindow(_ + _, _ - _, Minutes(10), Seconds(2), 2).map { case ((productName, userName), count) =>
-//     (userName, productName, count)
-//   }
-
-//   clickCounts.print // Print out the results.  Or we can produce new kafka events containing the mapped ids.
-
-//   ssc.start()
-//   ssc.awaitTermination()
-// }
-
-// object AvroUtil {
-//   // Deserialize the byte array into an avro object
-//   // https://cwiki.apache.org/confluence/display/AVRO/FAQtil {
-//   val reader = new SpecificDatumReader[ClickEvent](ClickEvent.getClassSchema)
-//   def clickEventDecode(bytes: Array[Byte]): ClickEvent = {
-//     val decoder = DecoderFactory.get.binaryDecoder(bytes, null)
-//     reader.read(null, decoder)
-//   }
-// }
+  // case class KlineData(
+  //           eventType:String,
+  //           eventTime:Long,
+  //           symbol:String,
+  //           klineStartTime:Long,
+  //           klineCloseTime:Long,
+  //           interval:String,
+  //           firstTradeID:Long,
+  //           lastTradeID:Long,
+  //           openPrice:Long,
+  //           closePrice:Long,
+  //           highPrice:Long,
+  //           lowPrice:Long,
+  //           baseAssetVolume:Long,
+  //           numOfTrades:Long,
+  //           klineClosed:Boolean,
+  //           quoteAssetVolume:Long,
+  //           takerBuyBaseAssetVolume:Long,
+  //           takerBuyQuoteAssetVolume:Long)

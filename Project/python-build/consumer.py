@@ -35,7 +35,8 @@ class MyConsumer():
             while True:
                 message = self.consumer.poll(1.0)
                 if message is None:
-                    await asyncio.sleep(0.5)
+                    await asyncio.sleep(1)
+                    print("none")
                     continue
                 if message.error():
                     if message.error().code() == KafkaException._PARTITION_EOF:
