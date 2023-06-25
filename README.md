@@ -23,7 +23,6 @@ change wsl start to 127.rest of wsl2 Address
 secpol.msc
 local policies
 user right assignment
-https://www.anyviewer.com/how-to/remote-desktop-access-denied-2578.html#:~:text=Add%20your%20user%20into%20Remote,Remote%20Desktop%20Users%20local%20group.
 --- WSL2 ---:
 ---
 .bashrc/.zshrc 
