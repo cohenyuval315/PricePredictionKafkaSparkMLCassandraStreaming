@@ -1,6 +1,7 @@
 # ONGOING
 # ON HOLD USING PYSPARK INSTEAD 
-- since using dataframes doesnt seem to impact performance like using rdds
+- since using dataframes doesnt seem to impact performance like using rdds: 
+[project](https://github.com/cohenyuval315/Price-Prediction-Pipeline)
 # TEMP: 
 windows using wsl2:
 1.powershell:
